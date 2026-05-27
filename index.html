@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ROYAL MINI ROULETTE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 🎰 ক্যাসিনো হেডার প্যানেল -->
+    <div class="header">
+        <div class="brand">
+            <div class="name">MINI ROULETTE</div>
+            <div class="game">ROYAL WHEEL MASTER</div>
+        </div>
+        <div class="header-right">
+            <button class="sound-btn" id="mute-btn" onclick="toggleMute()">🔊</button>
+            <div class="balance-box">৳ <span id="user-balance">0.00</span></div>
+        </div>
+    </div>
+
+    <!-- 🎡 [মিনি রুলেট ক্যানভাস গোল্ডেন হুইল জোন] (ছবি ছাড়া পিউর গ্রাফিক্স ভাই ভাই) -->
+    <div class="roulette-outer-zone">
+        <div class="roulette-pointer">▼</div>
+        <canvas id="roulette-canvas" width="360" height="360"></canvas>
+    </div>
+
+    <!-- 🏆 ইন-লাইন লাইভ বাজি ধরার ৩টি প্রধান বোর্ড ঘর ভাই ভাই -->
+    <div class="betting-board">
+        <button class="bet-board-btn red-bet" id="board-red" onclick="selectBetSide('RED')">
+            <span class="board-label">RED (লাল) 🔴</span>
+            <span class="board-odds">x2.00</span>
+        </button>
+        
+        <button class="bet-board-btn zero-bet" id="board-zero" onclick="selectBetSide('ZERO')">
+            <span class="board-label">ZERO (০) 🟢</span>
+            <span class="board-odds">x12.00</span>
+        </button>
+        
+        <button class="bet-board-btn black-bet" id="board-black" onclick="selectBetSide('BLACK')">
+            <span class="board-label">BLACK (কালো) ⚫</span>
+            <span class="board-odds">x2.00</span>
+        </button>
+    </div>
+
+    <!-- 🏆 ইন-লাইন লাইভ স্কোরিং মেসেজ বার -->
+    <div class="win-status-container" id="win-status-box">
+        <span id="win-text-msg">লাল, কালো বা জিরো চুজ করে SPIN বোতাম চাপুন ভাই!</span>
+    </div>
+
+    <!-- 🎛️ কন্ট্রোল প্যানেল এরিয়া (৳১-৳২০০০ প্লাস-মাইনাস ও SPIN বোতাম পাশাপাশি লক ভাই) -->
+    <div class="footer-controls">
+        <div class="play-section">
+            <div class="bet-selector">
+                <button class="bet-btn-nav" onclick="adjustBet('minus')">−</button>
+                <div style="text-align: center; width: 60px;">
+                    <div style="font-size: 9px; color: #aaa; font-weight: bold;">BET</div>
+                    <div style="font-size: 15px; font-weight: 900; color: #fff;" id="bet-display">৳৫০</div>
+                </div>
+                <button class="bet-btn-nav" onclick="adjustBet('plus')">+</button>
+            </div>
+
+            <button class="play-btn" id="spin-btn" onclick="handleRouletteSpin()">SPIN</button>
+
+            <div class="icon-group">
+                <button class="icon-btn" id="auto-btn" onclick="toggleAuto()">🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔌 [উইনগো কালার ট্রেড সিঙ্ক - ইউনিভার্সাল সকেট ইঞ্জিন লাইব্রেরি ভাই] -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUserId = urlParams.get('userId') || urlParams.get('id') || urlParams.get('username') || "guest_user";
+        const urlWallet = urlParams.get('wallet') || "main";
+        
+        const SERVER_URL = window.location.origin;
+
+        const canvas = document.getElementById("roulette-canvas");
+        const ctx = canvas.getContext("2d");
+
+        let balance = 0.00;
+        let currentBet = 50; 
+        let selectedOption = null; // RED, BLACK, ZERO
+        let isSpinning = false; 
+        let isAuto = false;
+        let isMuted = false;
+        let autoInterval = null;
+        let currentWheelAngle = 0;
+
+        // 🎡 ওরিজিনাল মিনি রুলেটের ১৩টি ঘর বিন্যাস (ইন্টারন্যাশনাল স্ট্যান্ডার্ড ম্যাট্রিক্স ভাই ভাই)
+        const rouletteNumbers = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13];
+        const numSegments = rouletteNumbers.length;
+        const segmentAngle = (2 * Math.PI) / numSegments;
+
+        function getNumberColor(num) {
+            if (num === 0) return "#2ecc71"; // জিরো সবসময় সবুজ বর্ম ভাই ভাই
+            // ওরিজিনাল রুলেট ম্যাট্রিক্স অনুযায়ী লাল-কালো ভাগ লক
+            const redNumbers = [32, 19, 21, 25, 34, 27];
+            return redNumbers.includes(num) ? "#ea2027" : "#111827";
+        }
+
+        // ক্যানভাস চাকা ড্র করার নিখুঁত ওরিজিনাল মাস্টার ফাংশন ভাই ভাই
+        function drawRouletteWheel() {
+            const radius = canvas.width / 2;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(radius, radius);
+            ctx.rotate(currentWheelAngle);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * segmentAngle;
+                ctx.fillStyle = getNumberColor(rouletteNumbers[i]);
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, angle, angle + segmentAngle);
+                ctx.closePath();
+                ctx.fill();
+
+                // ভেতরের চমৎকার সাদা সেপারেটর বর্ডার লাইন
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // চাকার নাম্বারিং টেক্সট সেটআপ ভাই ভাই
+                ctx.save();
+                ctx.rotate(angle + segmentAngle / 2);
+                ctx.textAlign = "right";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 15px Arial";
+                ctx.fillText(rouletteNumbers[i].toString(), radius - 18, 0);
+                ctx.restore();
+            }
+
+            // মাঝখানের লাক্সারি গোল্ডেন পিন ক্যাপ বডি ভাই ভাই
+            ctx.fillStyle = "radial-gradient(#fff, #f1c40f)";
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#b38600";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+                function adjustBet(action) {
+            if (isSpinning) return;
+            if (action === 'minus' && currentBet > 1) {
+                if (currentBet <= 10) currentBet -= 1;
+                else if (currentBet <= 100) currentBet -= 10;
+                else currentBet -= 50;
+            }
+            if (action === 'plus' && currentBet < 2000) {
+                if (currentBet < 10) currentBet += 1;
+                else if (currentBet < 100) currentBet += 10;
+                else currentBet += 50;
+            }
+            if (currentBet < 1) currentBet = 1;
+            if (currentBet > 2000) currentBet = 2000;
+            
+            document.getElementById("bet-display").innerText = `৳${currentBet}`;
+            playAudio('click');
+        }
+
+        if (typeof io !== 'undefined') {
+            const socket = io();
+            socket.on("balanceUpdate", (data) => {
+                if (data && data.username === urlUserId) {
+                    if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+                    fetchLiveBalance();
+                }
+            });
+        }
+
+        async function fetchLiveBalance() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/roulette-balance?userId=${urlUserId}&wallet=${urlWallet}`);
+                const data = await response.json();
+                if (data && data.success) {
+                    balance = parseFloat(data.balance);
+                    document.getElementById("user-balance").innerText = balance.toFixed(2);
+                }
+            } catch (e) { console.error("Balance lag"); }
+        }
+
+        window.onload = () => {
+            if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+            fetchLiveBalance();
+            drawRouletteWheel();
+        };
+
+        function selectBetSide(side) {
+            if (isSpinning) return;
+            selectedOption = side;
+            
+            document.querySelectorAll(".bet-board-btn").forEach(b => b.classList.remove("active-side-bet"));
+            if (side === 'RED') document.getElementById("board-red").classList.add("active-side-bet");
+            if (side === 'ZERO') document.getElementById("board-zero").classList.add("active-side-bet");
+            if (side === 'BLACK') document.getElementById("board-black").classList.add("active-side-bet");
+            
+            playAudio('click');
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById("mute-btn").innerText = isMuted ? "🔇" : "🔊";
+            document.getElementById("mute-btn").classList.toggle("muted-active", isMuted);
+        }
+
+        function toggleAuto() {
+            isAuto = !isAuto;
+            document.getElementById("auto-btn").classList.toggle("active", isAuto);
+            if (isAuto && !isSpinning) handleRouletteSpin();
+            playAudio('click');
+        }
+
+        async function handleRouletteSpin() {
+            if (isSpinning) return;
+            if (!selectedOption) {
+                alert("🚨 আগে বাজি ধরার যেকোনো ১টি ঘর (RED, BLACK বা ZERO) সিলেক্ট করুন ভাই!");
+                isAuto = false;
+                document.getElementById("auto-btn").classList.remove("active");
+                return;
+            }
+
+            const msgBox = document.getElementById("win-status-box");
+            msgBox.className = "win-status-container";
+            document.getElementById("win-text-msg").innerText = "🎡 রুলেট চাকা শোঁ শোঁ করে ঘুরছে...";
+
+            isSpinning = true;
+            document.getElementById("spin-btn").disabled = true;
+
+            // 🚀 চাকা ওড়ার সাথে সাথে spin2.mp3 গড়গড় মেটালিক সাউন্ড ফায়ার লক ভাই ভাই
+            playAudio('spin');
+
+            // চাকা হাই-স্পিডে ঘোরার লাইভ এনিমেশন ফ্রেম লুপ চালু ভাই ভাই
+            let spinFrameCount = 0;
+            const spinInterval = setInterval(() => {
+                currentWheelAngle += 0.25; // ঘূর্ণন স্পিড বুস্টার
+                drawRouletteWheel();
+                spinFrameCount++;
+            }, 30);
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/roulette-spin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: urlUserId,
+                        amount: parseFloat(currentBet),
+                        wallet: urlWallet,
+                        prediction: selectedOption
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data && data.success === true) {
+                    balance = parseFloat(data.balance);
+                    if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+                    if (window.top) window.top.postMessage({ action: "refresh_wallet" }, "*");
+
+                    // ৪ সেকেন্ডের কড়া ক্যাসিনো থ্রিল শেষে চাকা পারফেক্ট টার্গেট ঘরে এসে ব্রেক চাপবে ভাই
+                    setTimeout(() => {
+                        clearInterval(spinInterval);
+                        
+                        // 🎯 [ক্যানভাস ৩ডি কোণ ফিক্সার ম্যাথ লক]: চাকার নির্দেশক বরাবর ঘরটি মেলাবার চূড়ান্ত ক্যালকুলেশন ভাই ভাই
+                        const targetIdx = rouletteNumbers.indexOf(data.winningNumber);
+                        const finalRotationAngle = (targetIdx * segmentAngle) - (segmentAngle / 2);
+                        currentWheelAngle = (3 * Math.PI / 2) - finalRotationAngle;
+                        
+                        drawRouletteWheel();
+
+                        showFinalResult(data.status, data.winAmount, data.winningNumber, data.winnerColor);
+                    }, 4000);
+
+                } else {
+                    clearInterval(spinInterval);
+                    alert(data.message || "❌ Insufficient Balance! Please Recharge.");
+                    stopRouletteState();
+                }
+            } catch (err) {
+                clearInterval(spinInterval);
+                alert("⚠️ সেশন আউট! আবার SPIN বোতাম চাপুন ভাই ভাই।");
+                stopRouletteState();
+            }
+        }
+
+        function showFinalResult(status, winAmount, winNum, winColor) {
+            const msgBox = document.getElementById("win-status-box");
+            const textMsg = document.getElementById("win-text-msg");
+
+            const colorNameBengali = (winColor === "RED") ? "লাল" : (winColor === "BLACK") ? "কালো" : "সবুজ জিরো";
+
+            if (status === "win") {
+                // 🎵 বাজি জিতে টাকা ডবল বা ১২ গুণ হলে win2.mp3 রাজকীয় সাউন্ড ফায়ার লক ভাই!
+                playAudio('win');
+                msgBox.className = "win-status-container win-glow-bar";
+                textMsg.innerText = `🏆 মেগা উইন!! চাকা থেমেছে: ${winNum} এর ঘরে (${colorNameBengali}) [৳${winAmount}]`;
+            } else {
+                msgBox.className = "win-status-container lose-glow-bar";
+                textMsg.innerText = `❌ চাকা থেমেছে: ${winNum} এর ঘরে (${colorNameBengali})। এই রাউন্ডে ভাগ্য সহায় হয়নি ভাই!`;
+            }
+
+            document.getElementById("user-balance").innerText = balance.toFixed(2);
+            stopRouletteState();
+
+            if (isAuto) {
+                autoInterval = setTimeout(() => {
+                    if (isAuto) handleRouletteSpin();
+                }, 2000);
+            }
+        }
+
+        function stopRouletteState() {
+            isSpinning = false;
+            document.getElementById("spin-btn").disabled = false;
+            if (!isAuto && autoInterval) clearTimeout(autoInterval);
+        }
+
+        // 🎯 [আপনার রিকোয়ারমেন্ট অনুযায়ী ৩টি প্রিমিয়াম সাউন্ড ও বাফার গেটওয়ে লক ভাই ভাই]
+        const slotSounds = {
+            click: new Audio('click2.mp3'),
+            spin: new Audio('spin2.mp3'),
+            win: new Audio('win2.mp3')
+        };
+        Object.values(slotSounds).forEach(s => s.load());
+
+        function playAudio(type) { 
+            if (isMuted) return; 
+            try { 
+                slotSounds[type].currentTime = 0; 
+                slotSounds[type].play(); 
+            } catch(e){} 
+        }
+    </script>
+</body>
+</html>
