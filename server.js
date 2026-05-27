@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 });
 
 // 🎰 [উইনগো কালার ট্রেড ওরিজিনাল ডোমেইন সিঙ্ক]
-const MAIN_SITE_URL = "https://onrender.com"; 
+const MAIN_SITE_URL = "https://betlover247.onrender.com"; 
 
 // 🎡 ওরিজিনাল মিনি রুলেটের ১৩টি ঘর বিন্যাস (ইন্টারন্যাশনাল স্ট্যান্ডার্ড ম্যাট্রিক্স ভাই ভাই)
 const rouletteNumbers = [0, 2, 4, 6, 8, 10, 12, 11, 9, 7, 5, 3, 1];
