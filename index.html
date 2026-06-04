@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MINI ROULETTE - ROYAL WHEEL MASTER</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 🎰 [🎰 মেগা ইমেজ-লেস পিওর ৩ডি সিএসএস রুলেট চাকা মেকানিজম বর্ম ভাই ভাই] */
+        .roulette-wheel-plate {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            background: #0f172a;
+            border: 4px solid #1e293b;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,0,0.9);
+            transform: rotate(0deg);
+        }
+
+        /* চাকার ভেতরের ১২টি গোল্ডেন ক্যাসিনো সংখ্যার স্লট স্লাইস বর্ম */
+        .wheel-number-slice {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            left: 50%;
+            top: 50%;
+            transform-origin: 0% 0%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 15px;
+            font-size: 13px;
+            font-weight: 900;
+            color: #ffffff;
+            box-sizing: border-box;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* চাকার ভেতরের ওরিজিনাল পিওর ডার্ক সেন্টার হাব ক্যাপ */
+        .wheel-center-hub-cap {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+            border-radius: 50%;
+            z-index: 10;
+            border: 3px solid #ffaa00;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header" style="display:none !important;">
+        <div class="balance-box">৳ <span id="user-balance">0.00</span></div>
+    </div>
+
+    <!-- 🎡 ওরিজিনাল ক্যাসিনো ৩ডি রুলেট চাকা শোডাউন জোন -->
+    <div class="roulette-wheel-container">
+        <div class="wheel-pointer-arrow">▼</div>
+        <!-- 🎯 মেইন ৩ডি রুলেট চাকা প্লেট নোড - যা পিওর সিএসএস স্লটে তৈরি হয়ে স্পিন করবে ওস্তাদ -->
+        <div class="roulette-wheel-plate" id="roulette-wheel-plate-node">
+            <!-- জাভাস্ক্রিপ্ট লুপ দিয়ে ১২টি স্লট একুরেট কোণে জেনারেট হবে এখানে -->
+        </div>
+        <div class="wheel-center-hub-cap"></div>
+    </div>
+
+    <!-- 💸 বাজি ধরার প্রধান ৩টি নিয়ন মডিউল (RED, ZERO, BLACK ওডস লক ভাই ভাই) -->
+    <div class="betting-board">
+        <button class="bet-board-btn red-select-btn" id="board-RED" onclick="selectBetSide('RED')">
+            <span class="board-label">RED (লাল) 🔴</span>
+            <span class="board-odds">x2.00</span>
+        </button>
+
+        <button class="bet-board-btn zero-select-btn" id="board-ZERO" onclick="selectBetSide('ZERO')">
+            <span class="board-label">ZERO (০) 🟢</span>
+            <span class="board-odds">x12.00</span>
+        </button>
+
+        <button class="bet-board-btn black-select-btn" id="board-BLACK" onclick="selectBetSide('BLACK')">
+            <span class="board-label">BLACK (কালো) ⚫</span>
+            <span class="board-odds">x2.00</span>
+        </button>
+    </div>
+
+    <!-- 📢 উইন-লস লাইভ ক্যাসিনো মেসেজ প্যানেল বার -->
+    <div class="win-status-container" id="win-status-box">
+        <span id="win-text-msg">লাল, কালো বা জিরো চুজ করে SPIN বোতাম চাপুন ভাই!</span>
+    </div>
+
+    <!-- 🎛️ অ্যাকশন কন্ট্রোল ফুটার প্যানেল বার (SPIN বাটন লক) -->
+    <div class="footer-controls">
+        <div class="play-section">
+            <button class="bet-btn-nav" onclick="adjustBet('minus')">-</button>
+            <div style="text-align: center; width: 60px;">
+                <div style="font-size: 9px; color: #aaa; font-weight: bold;">BET</div>
+                <div style="font-size: 15px; font-weight: 900; color: #fff;" id="bet-display">৳50</div>
+            </div>
+            <button class="bet-btn-nav" onclick="adjustBet('plus')">+</button>
+
+            <button class="play-btn" id="spin-btn" onclick="handleRouletteSpin()">SPIN</button>
+            
+            <div class="icon-group">
+                <button class="icon-btn" id="auto-btn" onclick="toggleAuto()">🤖</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUserId = urlParams.get('userId') || urlParams.get('id') || urlParams.get('username') || "guest_user";
+        const urlWallet = urlParams.get('wallet') || "main";
+        const SERVER_URL = window.location.origin;
+
+        let balance = 0.00;
+        let currentBet = 50;
+        let selectedSide = null;
+        let isSpinning = false;
+        let isAuto = false;
+        let isMuted = false;
+        let autoInterval = null;
+
+        // 🎡 ওরিজিনাল স্ক্রিনশটের ১২ স্লট চাকার সংখ্যা ও রঙের ওরিজিনাল ক্রুশিয়াল প্যাটার্ন লক
+        const rouletteWheelNumbersList = [
+            { num: 34, color: "RED" }, { num: 9, color: "RED" }, { num: 27, color: "RED" },
+            { num: 13, color: "BLACK" }, { num: 0, color: "ZERO" }, { num: 32, color: "RED" },
+            { num: 15, color: "BLACK" }, { num: 19, color: "RED" }, { num: 4, color: "BLACK" },
+            { num: 21, color: "RED" }, { num: 2, color: "BLACK" }, { num: 25, color: "RED" },
+            { num: 17, color: "BLACK" }
+        ];
+
+        // 🛠️ [মেগা পিউর সিএসএস চাকা রেন্ডারিং ইঞ্জিন]: পেজ লোড হতেই ডাইনামিক ১২টি লাল-কালো স্লট তৈরি করার চাবি
+        function generatePureCSSRouletteWheelPlate() {
+            const wheelPlateNode = document.getElementById("roulette-wheel-plate-node");
+            if (!wheelPlateNode) return;
+            
+            wheelPlateNode.innerHTML = "";
+            let totalSlotsCount = rouletteWheelNumbersList.length;
+            let singleSliceAngleDegree = 360 / totalSlotsCount;
+
+            rouletteWheelNumbersList.forEach((slot, index) => {
+                const sliceDiv = document.createElement("div");
+                sliceDiv.className = "wheel-number-slice";
+                
+                // ওরিজিনাল কালার সিঙ্ক বর্ম
+                let slotHexBgColor = "#ff3344"; // RED
+                if (slot.color === "BLACK") slotHexBgColor = "#1e293b";
+                if (slot.color === "ZERO") slotHexBgColor = "#22c55e";
+
+                // CSS ক্লিপ-পাথ দিয়ে নিখুঁত কনিকাল স্লাইস বাউন্সার লক ওস্তাদ ভাই ভাই
+                let currentAngleOffset = index * singleSliceAngleDegree;
+                sliceDiv.style.transform = `translate(-50%, -50%) rotate(${currentAngleOffset}deg)`;
+                sliceDiv.style.background = slotHexBgColor;
+                sliceDiv.style.clipPath = `polygon(0% 0%, 100% 0%, ${100 - (100 / totalSlotsCount)}% 100%, 0% 0%)`;
+                
+                // সংখ্যার টেক্সট পুশ চ্যাম
+                sliceDiv.innerHTML = `<span style="transform: rotate(${singleSliceAngleDegree / 2}deg); transform-origin: center; margin-left: 20px;">${slot.num}</span>`;
+                wheelPlateNode.appendChild(sliceDiv);
+            });
+        }
+
+        function adjustBet(action) {
+            if (isSpinning) return;
+            if (action === 'minus' && currentBet > 50) currentBet -= 50;
+            if (action === 'plus' && currentBet < 20000) currentBet += 50;
+            document.getElementById("bet-display").innerText = `৳${currentBet}`;
+            playAudio('click');
+        }
+
+        function selectBetSide(side) {
+            if (isSpinning) return;
+            selectedSide = side; 
+            document.getElementById("board-RED").classList.remove("active-side-bet");
+            document.getElementById("board-ZERO").classList.remove("active-side-bet");
+            document.getElementById("board-BLACK").classList.remove("active-side-bet");
+            document.getElementById(`board-${side}`).classList.add("active-side-bet");
+            playAudio('click');
+        }
+
+        function animateRouletteWheelSpinning(serverGameData) {
+            const wheelPlate = document.getElementById("roulette-wheel-plate-node");
+            if (!wheelPlate) return;
+
+            let finalWinningNumber = serverGameData.winningNumber || 0;
+            
+            // চাকার ভেতরের ওরিজিনাল স্লট ইনডেক্স খুঁজে ডিগ্রী বের করার নিখুঁত ফর্মুলা
+            let targetSlotIndex = rouletteWheelNumbersList.findIndex(s => s.num === finalWinningNumber);
+            if (targetSlotIndex === -1) targetSlotIndex = 0;
+            
+            let singleSliceAngleDegree = 360 / rouletteWheelNumbersList.length;
+            let baseTargetDegree = targetSlotIndex * singleSliceAngleDegree;
+
+            // 🎡 ৫ চক্কর (১৮০০ ডিগ্রী) ফুল স্পিড ব্যাকগ্রাউন্ড বোমাস্টার রোটেশন লক ভাই ভাই
+            let totalTargetRotationAngle = 1800 + (360 - baseTargetDegree);
+
+            wheelPlate.style.transition = "transform 3.5s cubic-bezier(0.1, 0.8, 0.1, 1)";
+            wheelPlate.style.transform = `rotate(${totalTargetRotationAngle}deg)`;
+            playAudio('spin');
+
+            setTimeout(() => {
+                wheelPlate.style.transition = "none";
+                wheelPlate.style.transform = `rotate(${360 - baseTargetDegree}deg)`;
+
+                if (serverGameData.balance !== undefined) {
+                    balance = parseFloat(serverGameData.balance);
+                }
+                showFinalRouletteReward(serverGameData.status, serverGameData.winAmount, finalWinningNumber, serverGameData.winningColor);
+            }, 3650);
+        }
+
+                async function handleRouletteSpin() {
+            if (isSpinning || isSpinning === true) return; 
+            if (!selectedSide) {
+                alert("🔒 বাজি প্লে করার আগে RED, BLACK বা ZERO সিলেক্ট করুন ওস্তাদ!");
+                return;
+            }
+
+            isSpinning = true;
+            if (document.getElementById("spin-btn")) document.getElementById("spin-btn").disabled = true;
+            if (document.getElementById("win-status-box")) document.getElementById("win-status-box").className = "win-status-container";
+            if (document.getElementById("win-text-msg")) document.getElementById("win-text-msg").innerText = "🎰 চাকা ঘুরছে, রিওয়ার্ড গণনার অপেক্ষা ওস্তাদ...";
+            playAudio('click');
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/roulette-deal`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: urlUserId, amount: parseFloat(currentBet), wallet: urlWallet, prediction: selectedSide
+                    })
+                });
+
+                const serverRes = await response.json();
+                
+                if (serverRes.success || serverRes.success === true) {
+                    let parsedLiveBalance = serverRes.balance || serverRes.data?.balance || balance;
+                    balance = parseFloat(parsedLiveBalance);
+                    
+                    let targetGamePayload = serverRes.gameData || serverRes;
+                    animateRouletteWheelSpinning(targetGamePayload);
+                } else {
+                    alert(serverRes.message || "❌ Insufficient Balance! Please Recharge Wallet.");
+                    stopRouletteState();
+                }
+            } catch (err) {
+                stopRouletteState();
+            }
+        }
+
+        function showFinalRouletteReward(status, winAmount, winNum, winColor) {
+            const msgBox = document.getElementById("win-status-box");
+            const textMsg = document.getElementById("win-text-msg");
+            
+            let displayColorBengali = winColor === "RED" ? "লাল 🔴" : (winColor === "BLACK" ? "کালো ⚫" : "জিরো 🟢");
+
+            if (status === "win") {
+                playAudio('win');
+                if (msgBox) msgBox.className = "win-status-container win-glow-bar";
+                if (textMsg) textMsg.innerHTML = `🎉 গ্র্যান্ড উইন ওস্তাদ! চাকা <b>${winNum} [${displayColorBengali}]</b> এ থেমেছে। ওয়ালেটে ৳${winAmount} ক্রেডিট হয়েছে ভাই ভাই!`;
+            } else {
+                playAudio('wheel');
+                if (msgBox) msgBox.className = "win-status-container lose-glow-bar";
+                if (textMsg) textMsg.innerHTML = `💥 ওহ হো লস! চাকা <b>${winNum} [${displayColorBengali}]</b> এ থেমেছে। আবার অন ফায়ার ট্রাই করুন ওস্তাদ!`;
+            }
+
+            // 🎯 [মেগা ইনস্ট্যান্ট রিফ্রেশার ট্রিক]: চাকা থামা মাত্রই ১ মিলি-সেকেন্ডে চোখের পলকে ব্যালেন্স ইনস্ট্যান্ট আপডেট!
+            if (typeof balance !== 'undefined' && !isNaN(balance)) {
+                if (document.getElementById("user-balance")) {
+                    document.getElementById("user-balance").innerText = balance.toFixed(2);
+                }
+            }
+
+            setTimeout(() => { fetchLiveBalance(); }, 1500);
+            stopRouletteState();
+
+            if (isAuto) {
+                autoInterval = setTimeout(() => {
+                    if (isAuto) handleRouletteSpin();
+                }, 3500);
+            }
+        }
+
+        if (typeof io !== 'undefined') {
+            const socket = io();
+            socket.on("balanceUpdate", (data) => {
+                if (data && data.username === urlUserId) {
+                    if (data.balance !== undefined) {
+                        balance = parseFloat(data.balance);
+                        if (document.getElementById("user-balance")) {
+                            document.getElementById("user-balance").innerText = balance.toFixed(2);
+                        }
+                    }
+                    if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+                }
+            });
+        }
+
+        async function fetchLiveBalance() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/roulette-balance?userId=${urlUserId}&wallet=${urlWallet}`);
+                const serverData = await response.json();
+                if (serverData.success || serverData.balance !== undefined) {
+                    balance = parseFloat(serverData.balance);
+                    if (document.getElementById("user-balance")) {
+                        document.getElementById("user-balance").innerText = balance.toFixed(2);
+                    }
+                }
+            } catch (e) { console.error("Balance background layer sync check"); }
+        }
+
+        window.onload = () => {
+            if (window.parent) window.parent.postMessage({ action: "refresh_wallet" }, "*");
+            generatePureCSSRouletteWheelPlate(); // চাকা রেন্ডার ইঞ্জিন ইনিশিয়ালাইজেশন
+            fetchLiveBalance();
+        };
+
+        function toggleAuto() {
+            isAuto = !isAuto;
+            const autoEl = document.getElementById("auto-btn");
+            if (autoEl) autoEl.classList.toggle('active', isAuto);
+            if (isAuto && !isSpinning) handleRouletteSpin();
+            playAudio('click');
+        }
+
+        function stopRouletteState() {
+            isSpinning = false;
+            if (document.getElementById("spin-btn")) document.getElementById("spin-btn").disabled = false;
+            if (!isAuto && autoInterval) clearTimeout(autoInterval);
+        }
+
+        const slotSounds = {
+            click: new Audio('spin2.mp3'), spin: new Audio('spin2.mp3'),
+            win: new Audio('win2.mp3'), wheel: new Audio('spin2.mp3')
+        };
+        Object.values(slotSounds).forEach(s => s.load());
+
+        function playAudio(type) {
+            try { slotSounds[type].currentTime = 0; slotSounds[type].play(); } catch(e) {}
+        }
+    </script>
+</body>
+</html>
+
