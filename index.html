@@ -132,7 +132,7 @@
             { num: 17, color: "BLACK" }
         ];
 
-        // 🛠️ [মেগা পিউর সিএসএস চাকা রেন্ডারিং ইঞ্জিন]: পেজ লোড হতেই ডাইনামিক ১২টি লাল-কালো স্লট তৈরি করার চাবি
+                // 🛠️ [মেগা পিউর সিএসএস চাকা রেন্ডারিং ইঞ্জিন - ১০০% চওড়া স্লট ও জিরো-ওভারল্যাপ কিংস বর্ম]
         function generatePureCSSRouletteWheelPlate() {
             const wheelPlateNode = document.getElementById("roulette-wheel-plate-node");
             if (!wheelPlateNode) return;
@@ -141,26 +141,50 @@
             let totalSlotsCount = rouletteWheelNumbersList.length;
             let singleSliceAngleDegree = 360 / totalSlotsCount;
 
+            // 🎯 মোবাইল স্ক্রিনে স্লাইসের ডানাবর্তী চওড়া রেশিও কাটায় কাটায় মেলাতে ক্যানভাস ট্যানজেন্ট ক্যালকুলেশন
+            let sliceWidthPercentage = Math.tan((singleSliceAngleDegree * Math.PI) / 360) * 100;
+
             rouletteWheelNumbersList.forEach((slot, index) => {
                 const sliceDiv = document.createElement("div");
                 sliceDiv.className = "wheel-number-slice";
                 
-                // ওরিজিনাল কালার সিঙ্ক বর্ম
-                let slotHexBgColor = "#ff3344"; // RED
-                if (slot.color === "BLACK") slotHexBgColor = "#1e293b";
-                if (slot.color === "ZERO") slotHexBgColor = "#22c55e";
+                // ওরিজিনাল কালার সিঙ্ক বর্ম ভাই ভাই
+                let slotHexBgColor = "#ef4444"; // RED (প্রিমিয়াম নিয়ন ক্যাসিনো রেড)
+                if (slot.color === "BLACK") slotHexBgColor = "#1e293b"; // BLACK (ডার্ক মেটাল স্লেট)
+                if (slot.color === "ZERO") slotHexBgColor = "#22c55e"; // ZERO (লাকি গ্রিন)
 
-                // CSS ক্লিপ-পাথ দিয়ে নিখুঁত কনিকাল স্লাইস বাউন্সার লক ওস্তাদ ভাই ভাই
+                // 🔒 [মেগা পলিগন ক্লিপ বর্ম]: চাকার স্লটগুলো চিকন পাখা না হয়ে একদম চওড়া পিৎজা স্লাইসের মতো গোল ছড়াবে ওস্তাদ!
                 let currentAngleOffset = index * singleSliceAngleDegree;
-                sliceDiv.style.transform = `translate(-50%, -50%) rotate(${currentAngleOffset}deg)`;
+                sliceDiv.style.position = "absolute";
+                sliceDiv.style.top = "0";
+                sliceDiv.style.left = "50%";
+                sliceDiv.style.width = (sliceWidthPercentage * 2) + "%";
+                sliceDiv.style.height = "50%";
+                sliceDiv.style.transformOrigin = "50% 100%";
+                sliceDiv.style.transform = `translateX(-50%) rotate(${currentAngleOffset}deg)`;
                 sliceDiv.style.background = slotHexBgColor;
-                sliceDiv.style.clipPath = `polygon(0% 0%, 100% 0%, ${100 - (100 / totalSlotsCount)}% 100%, 0% 0%)`;
+                sliceDiv.style.clipPath = `polygon(50% 100%, 0% 0%, 100% 0%)`;
                 
-                // সংখ্যার টেক্সট পুশ চ্যাম
-                sliceDiv.innerHTML = `<span style="transform: rotate(${singleSliceAngleDegree / 2}deg); transform-origin: center; margin-left: 20px;">${slot.num}</span>`;
+                // 📊 সংখ্যার টেক্সট ওরিয়েন্টেশন সোজা এবং ভিজিবল রাখার কিংস এলাইনমেন্ট লক
+                sliceDiv.innerHTML = `
+                    <div style="
+                        position: absolute; 
+                        top: 20px; 
+                        left: 50%; 
+                        transform: translateX(-50%); 
+                        font-size: 15px; 
+                        font-weight: 900; 
+                        color: #ffffff; 
+                        text-shadow: 0 2px 5px rgba(0,0,0,0.9);
+                        font-family: Arial, sans-serif;
+                    ">
+                        ${slot.num}
+                    </div>
+                `;
                 wheelPlateNode.appendChild(sliceDiv);
             });
         }
+
 
         function adjustBet(action) {
             if (isSpinning) return;
