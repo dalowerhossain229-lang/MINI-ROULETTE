@@ -132,7 +132,7 @@
             { num: 17, color: "BLACK" }
         ];
 
-                 // 🛠️ [মেগা পিউর সিএসএস চাকা রেন্ডারিং ইঞ্জিন - ১০০% খাড়া সোজা সংখ্যা ও জিরো-বাঁকা ট্র্যাপ কিংস বর্ম]
+               // 🛠️ [মেগা পিউর সিএসএস চাকা রেন্ডারিং ইঞ্জিন - ১০০০% নিখুঁত ওরিজিনাল ক্যাসিনো এলাইনমেন্ট বর্ম]
         function generatePureCSSRouletteWheelPlate() {
             const wheelPlateNode = document.getElementById("roulette-wheel-plate-node");
             if (!wheelPlateNode) return;
@@ -141,7 +141,7 @@
             let totalSlotsCount = rouletteWheelNumbersList.length;
             let singleSliceAngleDegree = 360 / totalSlotsCount;
 
-            // মোবাইল ফ্রেমের নিখুঁত বৃত্তাকার কনিকাল স্লাইস অনুপাত লক
+            // মোবাইল স্ক্রিনের ফ্রেম অনুযায়ী নিখুঁত বৃত্তাকার কনিকাল স্লাইস অনুপাত লক
             let sliceWidthPercentage = Math.tan((singleSliceAngleDegree * Math.PI) / 360) * 100;
 
             rouletteWheelNumbersList.forEach((slot, index) => {
@@ -149,9 +149,9 @@
                 sliceDiv.className = "wheel-number-slice";
                 
                 // ওরিজিনাল কালার সিঙ্ক বর্ম ভাই ভাই
-                let slotHexBgColor = "#ef4444"; // RED
-                if (slot.color === "BLACK") slotHexBgColor = "#1e293b"; // BLACK
-                if (slot.color === "ZERO") slotHexBgColor = "#22c55e"; // ZERO
+                let slotHexBgColor = "#ef4444"; // RED (প্রিমিয়াম নিয়ন ক্যাসিনো লাল)
+                if (slot.color === "BLACK") slotHexBgColor = "#1e293b"; // BLACK (ডার্ক মেটাল স্লেট)
+                if (slot.color === "ZERO") slotHexBgColor = "#22c55e"; // ZERO (লাকি গ্রিন)
 
                 let currentAngleOffset = index * singleSliceAngleDegree;
                 
@@ -165,20 +165,20 @@
                 sliceDiv.style.background = slotHexBgColor;
                 sliceDiv.style.clipPath = `polygon(50% 100%, 0% 0%, 100% 0%)`;
                 
-                // 🔒 [কাউন্টার-ব্যালেন্স রোটেশন মেগা বর্ম ওস্তাদ]: 
-                // সংখ্যার টেক্সট ব্লককে বিপরীত কোণে রোটেশন লক করায়—চাকা বাঁকা ঘুরলেও সংখ্যা সবসময় চোখের সামনে একদম সোজা খাড়া থাকবে ভাই ভাই!
-                let numberCounterRotateAngle = -currentAngleOffset;
+                // 🔒 [রেডিয়াল কাউন্টার-ব্যালেন্স ১৮০ ডিগ্রী ফ্লিপ বর্ম ওস্তাদ]: 
+                // আপনার পাঠানো ওরিজিনাল স্ক্রিনশটের মতো প্রতিটা সংখ্যাকে ১৮০ ডিগ্রী সোজা ফ্লিপ করে খাড়া রাখার ম্যাথমেটিক্যাল চ্যাম ভাই ভাই!
+                let numberCenterFixAngle = 180;
 
                 sliceDiv.innerHTML = `
                     <div style="
                         position: absolute; 
-                        top: 18px; 
+                        top: 22px; 
                         left: 50%; 
-                        transform: translateX(-50%) rotate(${numberCounterRotateAngle}deg); 
+                        transform: translateX(-50%) rotate(${numberCenterFixAngle}deg); 
                         font-size: 15px; 
                         font-weight: 900; 
                         color: #ffffff; 
-                        text-shadow: 0 2px 5px rgba(0,0,0,0.9);
+                        text-shadow: 0 2px 4px rgba(0,0,0,0.9);
                         font-family: Arial, sans-serif;
                         display: flex;
                         justify-content: center;
@@ -192,7 +192,7 @@
                 wheelPlateNode.appendChild(sliceDiv);
             });
         }
-       
+          
 
 
         function adjustBet(action) {
